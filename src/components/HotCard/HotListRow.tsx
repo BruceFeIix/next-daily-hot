@@ -13,7 +13,7 @@ import { Description } from '@heroui/react'
 import { memo } from 'react'
 
 import OverflowDetector from '@/components/OverflowDetector'
-import { formatNumber, hotLableColor, hotTagColor } from '@/lib/utils'
+import { formatNumber, hotLabelColor, hotTagColor } from '@/lib/utils'
 
 interface RowData {
   index: number
@@ -43,7 +43,7 @@ const HotListRow = memo(function HotListRow({ index, data, value, trends, highli
   const { label, title } = item
 
   // 简单的查表取值（primitive / 小对象）无需 useMemo：行组件自身已按 props memo，重渲染频率很低
-  const labelColor = label ? hotLableColor[label as keyof typeof hotLableColor] : hotTagColor[index]
+  const labelColor = label ? hotLabelColor[label as keyof typeof hotLabelColor] : hotTagColor[index]
   const colorStyle = {
     backgroundColor: labelColor || 'var(--default)',
     color: labelColor ? '#fff' : 'var(--default-foreground)',

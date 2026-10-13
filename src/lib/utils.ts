@@ -44,7 +44,7 @@ export const hotTagColor = ['#ea444d', '#ed702d', '#eead3f']
 /**
  * @description: 微博爆点配置
  */
-export const hotLableColor: Record<string, string> = {
+export const hotLabelColor: Record<string, string> = {
   热: '#ff9406',
   沸: '#f86400',
   新: '#ff3852',
