@@ -17,6 +17,12 @@ export interface UseRequestOptions {
 }
 
 /**
+ * 不可重试的错误：命中后立即放弃自动重试（如 429 限流——重试只会持续撞墙，
+ * 把请求量放大数倍并拖长限流窗口内的恢复时间），由 service 抛出、useRequest 识别
+ */
+export class FatalRequestError extends Error {}
+
+/**
  * 请求 hook，行为对齐 ahooks useRequest：
  * - manual: true 时不自动请求，仅通过 run() 触发
  * - debounceWait: 对 run() 调用做防抖
@@ -61,6 +67,10 @@ export function useRequest<TData>(service: () => Promise<TData>, options: UseReq
           return result
         } catch (catchError) {
           lastError = catchError
+          // 不可重试错误（如 429 限流）：放弃剩余重试，且不做退避等待
+          if (catchError instanceof FatalRequestError) {
+            break
+          }
           // 指数退避：500ms → 1s → 2s，避免连续快速重试加重源站负担
           if (attempt < retryCount) {
             await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt))

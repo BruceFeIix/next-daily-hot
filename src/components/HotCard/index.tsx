@@ -18,7 +18,7 @@ import HotListVirtual from './HotListVirtual'
 import BlurFade from '@/components/BlurFade'
 import SkeletonCard from '@/components/SkeletonCard'
 import { API_CACHE_SECONDS, RESPONSE } from '@/config/response'
-import { useRequest } from '@/hooks/use-request'
+import { FatalRequestError, useRequest } from '@/hooks/use-request'
 import { smoothScrollTo } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
 
@@ -55,6 +55,12 @@ function HotCard({ value, label, tip, prefix, suffix }: HotListConfig) {
       // 一次性消费标记
       bypassCacheRef.current = false
       const response = await fetch(url)
+
+      // 429：Firewall Rate Limit 在到达路由前就于边缘拒绝。自动重试只会持续撞墙、
+      // 放大请求量并拖长误伤恢复时间，直接判失败交给用户手动刷新
+      if (response.status === 429) {
+        throw new FatalRequestError('Rate limited')
+      }
 
       if (response.status !== RESPONSE.SUCCESS) {
         throw new Error('Request failed')
@@ -198,7 +204,9 @@ function HotCard({ value, label, tip, prefix, suffix }: HotListConfig) {
             <SkeletonCard />
           ) : !data?.length ? (
             <Description className="flex h-full justify-center items-center px-8 text-center leading-5">
-              抱歉，可能服务器遇到问题了，请稍后重试，或者打开右上角设置关闭热榜显示！🤔
+              {error instanceof FatalRequestError
+                ? '请求过于频繁，请稍后再试'
+                : '抱歉，可能服务器遇到问题了，请稍后重试，或者打开右上角设置关闭热榜显示！🤔'}
             </Description>
           ) : (
             <BlurFade className="h-full pl-3">
