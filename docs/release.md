@@ -8,10 +8,9 @@
 
 发版统一走 `.github/workflows/release.yml`（workflow_dispatch，在 main 上触发）：
 
-1. 触发（二选一）：Actions 页面选 patch / minor / major，或填自定义版本号；或命令行：
-   ```bash
-   gh workflow run release.yml -f bump=minor        # 自定义版本号用 -f version=v3.x.0
-   ```
+1. 触发（二选一）：
+   - 方式 A：Actions 页面 → Release → Run workflow，选 patch / minor / major，或直接填自定义版本号；
+   - 方式 B：命令行 `gh workflow run release.yml -f bump=minor`（自定义版本号用 `-f version=v<版本号>`，填写后覆盖 bump）。
 2. CI 先跑 `pnpm lint` + `pnpm build` 预检，**任一失败即中止、不产生任何提交**。
 3. 通过后由 release-it 一次性完成：版本号 → CHANGELOG.md → `chore: Release v${version}` 提交 → tag → GitHub Release（提交作者为 github-actions[bot]）。
 4. 发版提交推上 main 后 Vercel 自动部署生产；本地 `git pull --ff-only` 同步 Release 提交。
@@ -19,7 +18,8 @@
 ## 版本规则
 
 - **tag 统一使用 `v` 前缀**（`.release-it.json` 的 `git.tagName` 显式锁定）。历史 tag 已于 2026-10-07 全部迁移为 v 前缀，GitHub Release 指向与 CHANGELOG 链接同步修正（一次性迁移脚本用后已删除，逻辑见 `4b172f2` 提交）。
-- **版本号从最新 tag 顺延，不看 package.json**：main 上 package.json 可能滞后于最新 tag（Release 提交只在发版时产生），发版前先 `git tag` / `gh run list` 确认最新 tag，避免版本号预期错位。
+- **版本真源是 package.json**：release-it 从 main 上 package.json 的当前版本 bump（自定义版本号除外）；Release 提交会同步 bump package.json 并打 tag，二者保持一致，无需额外 tag 校验。发版前 `git tag` 看一眼最新 tag，确认当前版本水位即可。
+- **bump 选择**：`fix` / `chore` 等选 patch，`feat` 选 minor，破坏性变更选 major（大版本升级须先沟通，见 AGENTS.md 禁止事项）。
 - 权限仅 `contents: write`（最小化授权）；`.env` 已提交，build 无需注入密钥。
 
 ## 本地发版（备用）

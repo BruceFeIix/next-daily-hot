@@ -10,11 +10,11 @@
 | 类别 | 选型 |
 | --- | --- |
 | 框架 | Next.js（App Router + Turbopack）、React、TypeScript strict |
-| UI | HeroUI（`@heroui/react`）+ Tailwind CSS v4（`@tailwindcss/postcss`） |
-| 动画 | motion（`motion/react`，framer-motion v12+）、next-themes 明暗主题 |
+| UI | HeroUI（`@heroui/react`）+ Tailwind CSS（`@tailwindcss/postcss`） |
+| 动画 | motion（`motion/react`）、next-themes 明暗主题 |
 | 状态 | zustand（`persist` 中间件 → localStorage） |
 | 请求 | 服务端原生 `fetch`（经 `src/lib/request.ts` 封装）；客户端自研 `useRequest`（`src/hooks/use-request.ts`，**无** axios/SWR/ahooks） |
-| 解析/工具 | cheerio（HTML 解析）、crypto-js（微信读书签名）、lunar-typescript（农历）、@tanstack/react-virtual（长列表虚拟滚动）、@dnd-kit（卡片拖拽排序） |
+| 解析/工具 | cheerio（HTML 解析）、lunar-typescript（农历）、@tanstack/react-virtual（长列表虚拟滚动）、@dnd-kit（卡片拖拽排序） |
 | 统计 | @vercel/analytics + 百度统计 + Google Analytics + Clarity（`src/components/Analytics`） |
 | 工程 | pnpm、ESLint（flat config）+ Prettier、release-it 发版（GitHub Actions 一键发版，见 [release.md](./release.md)） |
 
@@ -28,11 +28,9 @@ src/
 │   ├── layout.tsx          # 根布局：metadata / 主题 / 全局组件挂载
 │   ├── page.tsx            # 首页（唯一业务页面，'use client'）
 │   ├── globals.css         # Tailwind v4 入口 + HeroUI 主题变量
-│   ├── sitemap.ts / robots.ts / manifest.json / opengraph-image.tsx  # SEO/PWA
+│   ├── sitemap.ts / robots.ts / manifest.json / opengraph-image.tsx / not-found.tsx  # SEO/PWA/404
 │   └── api/<platform>/route.ts   # 各榜单 API（目录名 = 榜单 value，数量以 hotItemsConfig 为准）
-├── components/             # PascalCase 目录 + index.tsx
-│   ├── HotCard/            # 榜单卡片（含 HotListVirtual 虚拟列表）
-│   └── HotSettings/ Sortable/  # 卡片显示/隐藏/拖拽排序设置
+├── components/             # PascalCase 目录 + index.tsx；核心：HotCard（含 HotListVirtual）/ HotSettings / HotSearch / Sortable，其余为布局与功能组件
 ├── config/
 │   ├── hot-list.tsx        # HOT_ITEMS：全部榜单配置唯一数据源（分类/平台数量以此为准）
 │   └── response.ts         # 响应码 + API_CACHE_SECONDS 缓存窗口
@@ -41,8 +39,8 @@ src/
 │   ├── request.ts          # 上游请求公共层：fetchJson / fetchText（统一 UA、15s 超时、revalidate）
 │   ├── response.ts         # successResponse / errorResponse（统一 IResponse + CDN 缓存头 + 出口数据消毒）
 │   ├── utils.ts            # fromNow / formatNumber 等纯工具
-│   └── weread.ts miyoushe.ts 等  # 特殊平台算法（微信读书书籍 ID、米游社等），新算法也放这里
-├── store/useAppStore.ts    # zustand 全局状态（更新时间/心跳/隐藏/排序，persist）
+│   └── weread.ts / miyoushe.ts 等  # 特殊平台算法（微信读书书籍 ID、米游社等），新算法也放这里
+├── store/useAppStore.ts    # zustand 全局状态（更新时间/心跳/显隐/排序/常看收藏/趋势快照，persist）
 ├── styles/fonts.css        # Maple Mono CN 自托管 @font-face（字体文件在 public/fonts/）
 └── types/index.ts          # HotListConfig / HotListItem / IResponse 共享类型
 .agents/skills/             # Agent Skills（见根 AGENTS.md「AI Agent 代码生成规范」）
@@ -58,15 +56,15 @@ scripts/                    # Node 工具脚本（release-it 钩子、健康巡�
 上游平台接口
   → src/app/api/<value>/route.ts   （fetchJson：统一 Chrome UA + 15s 超时 + next.revalidate）
   → 映射为 HotListItem[]            （id/title/url/mobileUrl/hot/desc…）
-  → successResponse()               （统一 IResponse + CDN 头 s-maxage=300, stale-while-revalidate=60）
+  → successResponse()               （统一 IResponse + CDN 头 s-maxage=API_CACHE_SECONDS, stale-while-revalidate=60 固定）
   → 客户端 useRequest → HotCard     （useInView 进入视口才请求；手动刷新 URL 加时间戳绕过 CDN）
 ```
 
 ## 架构要点
 
 - **新增一个榜单 = 两步**：① `src/config/hot-list.tsx` 的 `hotItemsConfig` 在对应分类的 `children` 里加一行；② 新建 `src/app/api/<value>/route.ts`。完整步骤与上游抓取规范见 [add-hotlist.md](./add-hotlist.md)。
-- **缓存三层同源**：服务端 fetch `revalidate` = CDN `s-maxage` = 客户端刷新冷却，全部取自 `API_CACHE_SECONDS`（`src/config/response.ts`）；改动缓存策略必须三处一起评估。
-- **响应契约**：`IResponse { code, msg, data?, timestamp }` 固定；成功 `code=200`（可缓存），失败 `code=500` 且 `no-store`（避免错误被缓存）。前端依赖 `timestamp` 显示更新时间，勿改语义。
+- **缓存三层同源**：服务端 fetch `revalidate` = CDN `s-maxage` = 客户端刷新冷却，全部取自 `API_CACHE_SECONDS`（`src/config/response.ts`，默认 300 秒，可用 `NEXT_PUBLIC_HOT_CACHE_SECONDS` 覆盖）；改动缓存策略必须三处一起评估。
+- **响应契约**：HTTP 层恒为 200，业务结果以 body 的 `code` 区分；`IResponse { code, msg, data?, timestamp }` 固定，成功 `code=200`（可缓存），失败 `code=500` 且 `no-store`（避免错误被缓存）。前端依赖 `timestamp` 显示更新时间，勿改语义。
 - **客户端状态**：`useAppStore`（zustand persist）。改持久化结构必须递增 `version` 并补 `migrate`；`now/tick` 心跳是派生基准，不持久化。相对时间与刷新冷却共用同一时钟保证自洽。
 - **动画约束**：首页卡片网格的 FLIP 重排动画由**子级** `motion.div` 的 `layout` 承担；父级 grid 容器只承载 variants，**不要开启 `layout`**——父级变换补偿会在网格重排时叠加错位（见 `page.tsx` 注释）。
 - **SEO**：`layout.tsx` metadata 的 keywords 由 `HOT_ITEMS` 派生；sitemap / robots / manifest / opengraph-image 均为 App Router 文件约定。

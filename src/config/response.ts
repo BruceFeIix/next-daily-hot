@@ -6,7 +6,7 @@
  * 解析缓存窗口（秒）：
  * - 默认 300s（5 分钟）
  * - 支持环境变量 NEXT_PUBLIC_HOT_CACHE_SECONDS 覆盖
- * - 范围限制 60~3600s，非法或越界时回退默认值
+ * - 范围限制 60~3600s：越界收敛到边界值，非法值回退默认值
  */
 function resolveCacheSeconds(): number {
   const DEFAULT_SECONDS = 300

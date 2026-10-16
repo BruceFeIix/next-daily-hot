@@ -18,17 +18,17 @@
 <div align="center">
   <video src="https://github.com/user-attachments/assets/0baa9203-9d6d-4ae1-8b43-e1dfcf36a7b4" width="90%" controls muted playsinline></video>
   <br />
-  <sub>56 秒 · 1080p · 带中文口播与中英字幕（附件载体见 <a href="https://github.com/baiwumm/daily-trending/issues/20">#20</a>，请勿删除）</sub>
+  <sub>带中文口播与中英字幕（附件载体见 <a href="https://github.com/baiwumm/daily-trending/issues/20">#20</a>，请勿删除）</sub>
 </div>
 
 ### 🚀 特性
 
-- 🔥 聚合微博、知乎、B站、抖音、原神 等全网热门平台，按分类分节浏览
+- 🔥 聚合微博、知乎、B 站、抖音、GitHub、原神 等全网热门平台，按分类分节浏览
 - 🗂️ 分类分节布局 + 锚点导航，分类 / 平台两级排序与显隐
 - ⭐ 平台收藏常看：星标收藏后置顶聚合到首页，并从原分类移入常看
 - 📈 排名趋势标记（↑ / ↓ / 新）
 - ⌨️ Ctrl / ⌘ + K 全局搜索，跨卡片条目定位
-- ⚡ 基于 Next.js SSR，快速加载
+- ⚡ 基于 Next.js + CDN 边缘缓存，快速加载
 - 🎨 支持明暗主题切换
 - 📱 响应式设计，适配移动端
 - 🔍 SEO 优化，搜索友好
@@ -53,9 +53,11 @@ pnpm dev
 http://localhost:3000
 ```
 
+开发规范、架构说明与新增榜单指南见 [AGENTS.md](./AGENTS.md) 与 [docs/](./docs)。
+
 ### 🔌 开放 API
 
-所有榜单数据通过统一端点暴露：`GET /api/<value>`（`value` 为平台标识），返回结构：
+各榜单数据通过统一模式的端点暴露：`GET /api/<value>`（`value` 为平台标识），返回结构：
 
 ```json
 {
@@ -69,28 +71,26 @@ http://localhost:3000
       "mobileUrl": "移动端地址",
       "hot": 12345,
       "desc": "描述（可选）",
-      "pic": "封面图（可选）"
+      "pic": "封面图（可选）",
+      "tip": "替代热度的信息（可选）",
+      "label": "标签（可选）"
     }
   ],
   "timestamp": 1791500000000
 }
 ```
 
-`code` 为 200 成功（CDN 缓存 300 秒，URL 加 `?t=` 时间戳可绕过）、500 失败（不缓存）；`timestamp` 为数据更新时间。
+接口恒返回 HTTP 200，成功/失败以 body 的 `code` 区分：`code` 为 200 成功，CDN 默认缓存 300 秒（可经 `NEXT_PUBLIC_HOT_CACHE_SECONDS` 调整），URL 加 `?t=` 时间戳可绕过；`code` 为 500 失败，不缓存。`timestamp` 为数据更新时间。
 
 端点 `value` 与上游平台的对应关系以 `src/config/hot-list.tsx` 的 `hotItemsConfig` 为准（唯一数据源）；`value` 即 `src/app/api/<value>/route.ts` 的目录名。
 
-> ⚠️ 线上站点已启用 Vercel Security Checkpoint：脚本 / 服务端直连 `https://hot.baiwumm.com/api/*` 会返回 429 挑战页（与 UA 无关）。接口调试请使用本地构建服务（`pnpm build && pnpm start` 后访问 `http://127.0.0.1:3000`）。
+> ⚠️ 线上站点当前启用 Vercel Security Checkpoint：脚本 / 服务端直连 `https://hot.baiwumm.com/api/*` 会返回 429 挑战页（与 UA 无关）。接口调试请使用本地构建服务（`pnpm build && pnpm start` 后访问 `http://127.0.0.1:3000`）。
 
 ### 🚀 Vercel 一键部署
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/baiwumm/daily-trending)
 
-点击按钮即可快速部署到 Vercel。
-
-部署完成后，请在 **Vercel Project Settings → Environment Variables** 中配置环境变量。
-
-环境变量参考：[.env](./.env)
+默认使用仓库内已提交的 `.env` 构建；仅当需自定义站点信息或缓存窗口时，才在 **Vercel Project Settings → Environment Variables** 中覆盖配置。环境变量参考：[.env](./.env)
 
 ### ⭐ 支持项目
 <div align="center">
