@@ -30,13 +30,13 @@
 
 ## 上游抓取规范
 
-- **禁止绕过 `src/lib/request.ts` 裸写 `fetch`**：`fetchJson` / `fetchText` 统一注入 Chrome UA、15s 超时、`next.revalidate` 缓存策略。
+- **上游请求一律走 `src/lib/request.ts`**：`fetchJson` / `fetchText` 统一注入 Chrome UA、15s 超时、`next.revalidate` 缓存策略。
 - **上游反爬应对**（`buildHeaders` 已支持）：
   - 微博等需额外 `Referer`；
   - 个别站点对桌面 UA 返回反爬页，传 `'User-Agent': ''` 显式移除 UA。
 - **页面编码**：`fetchText` 默认按 UTF-8 解码；GBK / GB18030 等非 UTF-8 页面显式传 `encoding`（参考 `gp`、`jjwxc` 路由），否则中文乱码。
-- **上游挂掉属常态**：走 `errorResponse()` 返回，前端已处理空数据与错误态；不要让失败响应被 CDN 缓存（`errorResponse` 已是 `no-store`，勿破坏）。
-- 改缓存窗口需三处同源评估（服务端 revalidate = CDN s-maxage = 客户端冷却，见 [architecture.md](./architecture.md) 架构要点）。
+- **上游挂掉属常态**：走 `errorResponse()` 返回，前端已处理空数据与错误态；失败响应已由 `errorResponse` 置 `no-store`，保持该行为。
+- 改缓存窗口须三层同源评估（定义见 [architecture.md](./architecture.md) 架构要点）。
 
 ## 上游健康巡检
 

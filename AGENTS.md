@@ -12,10 +12,8 @@
 
 | 任务 | 命令 |
 | --- | --- |
-| 安装依赖（仅 pnpm，有 pnpm-lock.yaml） | `pnpm install` |
-| 开发服务器（localhost:3000） | `pnpm dev` |
-| 生产构建（`.env` 已提交，clone 即有） | `pnpm build` |
-| 运行生产构建 | `pnpm start` |
+| 安装依赖（仅 pnpm） | `pnpm install` |
+| 开发 / 构建 / 运行 | `pnpm dev`（localhost:3000）/ `pnpm build`（`.env` 已提交）/ `pnpm start` |
 | Lint 单文件 | `pnpm eslint src/path/to/file.ts` |
 | Lint 全量 / 自动修复 | `pnpm lint` / `pnpm lint:fix` |
 | 类型检查（无独立 typecheck 脚本） | `npx tsc --noEmit` |
@@ -32,7 +30,7 @@
 | 新增榜单 / 上游抓取与反爬 / 健康巡检 | `docs/add-hotlist.md` |
 | 发版流程 / tag 规则 / README 徽章同步 | `docs/release.md` |
 | 路线图 / 维护约定 | `docs/ROADMAP.md` |
-| 项目说明 / 部署 / 开放 API | `README.md` |
+| 部署 / 开放 API 契约 | `README.md` |
 
 ## AI Agent 代码生成规范
 
@@ -48,14 +46,14 @@
 - **框架 API**：Next.js 框架行为以 `node_modules/next/dist/docs/` 内置文档为准（版本随依赖精确匹配），先查文档再写
 - **不回退**：改造时保持既有代码同等水准（`useRequest` 竞态保护、zustand persist 版本化迁移、`fetchJson` 统一超时）
 
-## 禁止事项
+## 硬性规则
 
-1. 禁止修改 `IResponse` 响应结构与 `successResponse` / `errorResponse` 语义（前端全局依赖）
-2. 禁止绕过 `src/lib/request.ts` 的 `fetchJson` / `fetchText` 直接裸 `fetch` 上游（丢失 UA / 超时 / 缓存策略）
-3. 禁止 `hotItemsConfig` 的 `value` 与 `src/app/api/` 目录名不一致——value 即路由路径，改名必须两处同步
-4. 禁止引入替代性基础库（UI 非 HeroUI、状态非 zustand、请求非原生 fetch + 自研 `useRequest`），除非用户明确要求并评估影响
-5. 禁止改动 `eslint.config.mjs` 与 Prettier 风格基线；新增代码以 `pnpm lint:fix` 适配
-6. 禁止手工编辑 `.heroui-docs/`（工具生成目录）；禁止把工具生成的文档索引块（HeroUI / Next.js）写入本文件，保持本文件纯手写
-7. 禁止提交 `.env.local` 或任何私密密钥；`.env` 中只允许公开变量
-8. 禁止在未沟通的情况下升级 Next.js / HeroUI / React 大版本（历史上均为独立 `chore:` 提交，需配套回归验证）
-9. 禁止在仓库内把 Skill 复制到 `.agents/skills/` 之外的位置（避免多副本漂移）
+1. `IResponse` 契约与 `successResponse` / `errorResponse` 语义是前端全局依赖，保持原样；确需改动先与用户沟通。
+2. 上游请求一律走 `src/lib/request.ts` 的 `fetchJson` / `fetchText`（UA、15s 超时、revalidate 已统一处理）。
+3. `hotItemsConfig` 的 value 即路由路径：新增/改名时 `src/app/api/<value>/` 两处同步，改完本地请求一次验证。
+4. 基础库固定：UI=HeroUI、状态=zustand、请求=原生 fetch + 自研 `useRequest`；换栈只在当次对话中经用户明确要求。
+5. ESLint/Prettier 基线（`eslint.config.mjs` / `.prettierrc`）保持现状；新代码用 `pnpm lint:fix` 适配。
+6. `.heroui-docs/` 是工具生成目录，只读；AGENTS.md 保持纯手写。
+7. 私密变量只进 `.env.local`（已 gitignore），`.env` 仅公开变量；任何情况下不提交密钥。
+8. Next/HeroUI/React 大版本升级先沟通，独立 `chore:` 提交并做回归验证。
+9. Skill 只装 `.agents/skills/` 一处。

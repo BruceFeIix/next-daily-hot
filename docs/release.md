@@ -19,7 +19,7 @@
 
 - **tag 统一使用 `v` 前缀**（`.release-it.json` 的 `git.tagName` 显式锁定）。历史 tag 已于 2026-10-07 全部迁移为 v 前缀，GitHub Release 指向与 CHANGELOG 链接同步修正（一次性迁移脚本用后已删除，逻辑见 `4b172f2` 提交）。
 - **版本真源是 package.json**：release-it 从 main 上 package.json 的当前版本 bump（自定义版本号除外）；Release 提交会同步 bump package.json 并打 tag，二者保持一致，无需额外 tag 校验。发版前 `git tag` 看一眼最新 tag，确认当前版本水位即可。
-- **bump 选择**：`fix` / `chore` 等选 patch，`feat` 选 minor，破坏性变更选 major（大版本升级须先沟通，见 AGENTS.md 禁止事项）。
+- **bump 选择**：`fix` / `chore` 等选 patch，`feat` 选 minor，破坏性变更选 major（大版本升级须先沟通，见 AGENTS.md 硬性规则）。
 - 权限仅 `contents: write`（最小化授权）；`.env` 已提交，build 无需注入密钥。
 
 ## 本地发版（备用）
